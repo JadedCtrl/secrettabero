@@ -104,30 +104,39 @@
 
 
 ;; —————————————————————————————————————
+;; DBUS generally
+;; —————————————————————————————————————
+
+;; Creates an Introspectable interface for the given path, given a list
+;; of interfaces and subnodes.
+(define-syntax handle-introspection-for-path
+  (syntax-rules ()
+	((handle-introspection-for-path node-path interfaces subnodes)
+	 (let* ([xml
+			 (introspect-node-xml
+			  (list
+			   (append '("org.freedesktop.DBus.Introspectable"
+						 . (("Introspect"
+							 . (((direction . "out")
+								 (type . "s")
+								 (name . "xml_data"))))))
+					   interfaces))
+			  subnodes)]
+			[context
+			 (dbus:make-context bus: dbus:session-bus
+								service: 'org.jadedctrl.secrettabero
+								interface: 'org.freedesktop.DBus.Introspectable
+								path: node-path)])
+	   (dbus:register-method context "Introspect"
+							 (lambda () xml))))))
+
+
+
+;; —————————————————————————————————————
 ;; DBUS Path: /
 ;; —————————————————————————————————————
 
-;; Callback function for org.freedesktop.DBus.Introspectable's `Introspect`.
-(define (root-introspection-introspect)
-  (introspect-node-xml
-   '(("org.freedesktop.DBus.Introspectable"
-	. (("Introspect"
-		. (((direction . "out")
-			(type . "s")
-			(name . "xml_data")))))))
-   '(org)))
-
-
-;; The DBUS context used for introspection.
-(define root-introspection-context
-  (dbus:make-context
-   bus: dbus:session-bus
-   service: 'org.jadedctrl.secrettabero
-   interface: 'org.freedesktop.DBus.Introspectable
-   path: '/))
-
-(dbus:register-method root-introspection-context "Introspect"
-					  root-introspection-introspect)
+(handle-introspection-for-path '/ '() '(org))
 
 
 
@@ -135,27 +144,7 @@
 ;; DBUS Path: /org/
 ;; —————————————————————————————————————
 
-;; Callback function for org.freedesktop.DBus.Introspectable's `Introspect`.
-(define (root-org-introspection-introspect)
-  (introspect-node-xml
-   '(("org.freedesktop.DBus.Introspectable"
-	. (("Introspect"
-		. (((direction . "out")
-			(type . "s")
-			(name . "xml_data")))))))
-   '(freedesktop)))
-
-
-;; The DBUS context used for introspection.
-(define root-org-introspection-context
-  (dbus:make-context
-   bus: dbus:session-bus
-   service: 'org.jadedctrl.secrettabero
-   interface: 'org.freedesktop.DBus.Introspectable
-   path: '/org))
-
-(dbus:register-method root-org-introspection-context "Introspect"
-					  root-org-introspection-introspect)
+(handle-introspection-for-path '/org '() '(freedesktop))
 
 
 
@@ -163,27 +152,7 @@
 ;; DBUS Path: /org/freedesktop/
 ;; —————————————————————————————————————
 
-;; Callback function for org.freedesktop.DBus.Introspectable's `Introspect`.
-(define (root-org-freedesktop-introspection-introspect)
-  (introspect-node-xml
-   '(("org.freedesktop.DBus.Introspectable"
-	. (("Introspect"
-		. (((direction . "out")
-			(type . "s")
-			(name . "xml_data")))))))
-   '(secrets)))
-
-
-;; The DBUS context used for introspection.
-(define root-org-freedesktop-introspection-context
-  (dbus:make-context
-   bus: dbus:session-bus
-   service: 'org.jadedctrl.secrettabero
-   interface: 'org.freedesktop.DBus.Introspectable
-   path: '/org/freedesktop))
-
-(dbus:register-method root-org-freedesktop-introspection-context "Introspect"
-					  root-org-freedesktop-introspection-introspect)
+(handle-introspection-for-path '/org/freedesktop '() '(secrets))
 
 
 
@@ -191,26 +160,7 @@
 ;; DBUS Path: /org/freedesktop/secrets
 ;; —————————————————————————————————————
 
-;; Callback function for org.freedesktop.DBus.Introspectable's `Introspect`.
-(define (root-org-freedesktop-secrets-introspection-introspect)
-  (introspect-node-xml
-   '(("org.freedesktop.DBus.Introspectable"
-	. (("Introspect"
-		. (((direction . "out")
-			(type . "s")
-			(name . "xml_data")))))))))
-
-
-;; The DBUS context used for introspection.
-(define root-org-freedesktop-secrets-introspection-context
-  (dbus:make-context
-   bus: dbus:session-bus
-   service: 'org.jadedctrl.secrettabero
-   interface: 'org.freedesktop.DBus.Introspectable
-   path: '/org/freedesktop/secrets))
-
-(dbus:register-method root-org-freedesktop-secrets-introspection-context "Introspect"
-					  root-org-freedesktop-secrets-introspection-introspect)
+(handle-introspection-for-path '/org/freedesktop/secrets '() '())
 
 
 
