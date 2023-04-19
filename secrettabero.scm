@@ -15,7 +15,10 @@
 ;; along with this program. If not, see <https://www.gnu.org/licenses/>.
 ;;
 
-(import (chicken io) srfi-13 (prefix dbus dbus:) sxml-serializer)
+(import (chicken io)
+		(prefix srfi-13 13:)
+		(prefix dbus dbus:)
+		(prefix sxml-serializer sxml:))
 
 
 ;; Debugging
@@ -39,8 +42,8 @@
   (string-append
    "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"
 \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n\n"
-   (serialize-sxml (introspect-node-sxml interfaces subnodes)
-				  #f)))
+   (sxml:serialize-sxml (introspect-node-sxml interfaces subnodes)
+						#f)))
 
 
 ;; Generate a node's list containing the given interfaces, for use with SXML for
@@ -155,10 +158,10 @@
   (syntax-rules ()
 	[(handle-peers-for-path node-path)
 	 (let ([machine-id
-			(string-delete #\newline
-						   (call-with-input-file "/var/lib/dbus/machine-id"
-							 (lambda (in-port)
-							   (read-string #f in-port))))]
+			(13:string-delete #\newline
+							  (call-with-input-file "/var/lib/dbus/machine-id"
+								(lambda (in-port)
+								  (read-string #f in-port))))]
 		   [context
 			(dbus:make-context bus: dbus:session-bus
 							   service: 'org.jadedctrl.secrettabero
