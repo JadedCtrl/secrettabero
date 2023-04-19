@@ -15,7 +15,7 @@
 ;; along with this program. If not, see <https://www.gnu.org/licenses/>.
 ;;
 
-(import (prefix dbus dbus:) sxml-serializer)
+(import (chicken io) srfi-13 (prefix dbus dbus:) sxml-serializer)
 
 
 ;; Debugging
@@ -107,20 +107,39 @@
 ;; DBUS generally
 ;; —————————————————————————————————————
 
-;; Creates an Introspectable interface for the given path, given a list
-;; of interfaces and subnodes.
+;; Definition of org.freedesktop.DBus.Introspectable, in
+;; `introspect-interface-sxml`-compliant format.
+(define *introspectable-interface*
+  '("org.freedesktop.DBus.Introspectable"
+	. (("Introspect"
+		. (((direction . "out")
+			(type . "s")
+			(name . "xml_data")))))))
+
+
+;; Definition of org.freedesktop.DBus.Peer, in
+;; `introspect-interface-sxml`-compliant format.
+(define *peer-interface*
+  '("org.freedesktop.DBus.Peer"
+	. (("GetMachineId"
+		. (((direction . "out")
+			(type . "s")
+			(name . "machine_uuid")))))))
+
+
+;; Creates an org.freedesktop.DBus.Introspectable interface for the given
+;; path, given a list of interfaces and subnodes.
+;; Subnodes ought be a list of names e.g., '(subnode-a subnode-b), but
+;; interfaces ought be in a specific format; see the comment on
+;; `introspect-interface-sxml` for details.
 (define-syntax handle-introspection-for-path
   (syntax-rules ()
 	((handle-introspection-for-path node-path interfaces subnodes)
 	 (let* ([xml
 			 (introspect-node-xml
-			  (list
-			   (append '("org.freedesktop.DBus.Introspectable"
-						 . (("Introspect"
-							 . (((direction . "out")
-								 (type . "s")
-								 (name . "xml_data"))))))
-					   interfaces))
+			  (append
+			   (list *introspectable-interface*)
+			   interfaces)
 			  subnodes)]
 			[context
 			 (dbus:make-context bus: dbus:session-bus
@@ -131,12 +150,34 @@
 							 (lambda () xml))))))
 
 
+;; Creates a org.freedesktop.DBus.Peer interface along the given path.
+(define-syntax handle-peers-for-path
+  (syntax-rules ()
+	[(handle-peers-for-path node-path)
+	 (let ([machine-id
+			(string-delete #\newline
+						   (call-with-input-file "/var/lib/dbus/machine-id"
+							 (lambda (in-port)
+							   (read-string #f in-port))))]
+		   [context
+			(dbus:make-context bus: dbus:session-bus
+							   service: 'org.jadedctrl.secrettabero
+							   interface: 'org.freedesktop.DBus.Peer
+							   path: node-path)])
+	   (dbus:register-method context "Ping"
+							 (lambda () '()))
+	   (dbus:register-method context "GetMachineId"
+							 (lambda () machine-id)))]))
+
+
+
 
 ;; —————————————————————————————————————
 ;; DBUS Path: /
 ;; —————————————————————————————————————
 
-(handle-introspection-for-path '/ '() '(org))
+(handle-peers-for-path '/)
+(handle-introspection-for-path '/ (list *peer-interface*) '(org))
 
 
 
@@ -144,7 +185,8 @@
 ;; DBUS Path: /org/
 ;; —————————————————————————————————————
 
-(handle-introspection-for-path '/org '() '(freedesktop))
+(handle-peers-for-path '/org)
+(handle-introspection-for-path '/org (list *peer-interface*) '(freedesktop))
 
 
 
@@ -152,7 +194,8 @@
 ;; DBUS Path: /org/freedesktop/
 ;; —————————————————————————————————————
 
-(handle-introspection-for-path '/org/freedesktop '() '(secrets))
+(handle-peers-for-path '/org/freedesktop)
+(handle-introspection-for-path '/org/freedesktop (list *peer-interface*) '(secrets))
 
 
 
@@ -160,7 +203,8 @@
 ;; DBUS Path: /org/freedesktop/secrets
 ;; —————————————————————————————————————
 
-(handle-introspection-for-path '/org/freedesktop/secrets '() '())
+(handle-peers-for-path '/org/freedesktop/secrets)
+(handle-introspection-for-path '/org/freedesktop/secrets (list *peer-interface*) '())
 
 
 
@@ -173,5 +217,4 @@
 	; (dbus:poll-for-message bus: dbus:session-bus)	;; would be the session-bus by default anyway
 	(dbus:poll-for-message)
 	(loop))
-
 
