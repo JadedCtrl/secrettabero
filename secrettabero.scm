@@ -124,7 +124,8 @@
 ;; `introspect-interface-sxml`-compliant format.
 (define *peer-interface*
   '("org.freedesktop.DBus.Peer"
-	. (("GetMachineId"
+	. (("Ping" . ())
+	   ("GetMachineId"
 		. (((direction . "out")
 			(type . "s")
 			(name . "machine_uuid")))))))
